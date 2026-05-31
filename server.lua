@@ -10,18 +10,14 @@ addEventHandler("onBrushCreateObjects", resourceRoot, function(objectsData)
         return
     end
 
-    -- THE FIX: Foolproof way to find our "Host" element
     local hostElement = false
     for _, obj in ipairs(getElementsByType("object")) do
-        -- The Map Editor ALWAYS assigns an ID to objects you place manually.
-        -- If the object has an ID, we know it belongs to the editor and we can clone it safely!
         if getElementID(obj) then
             hostElement = obj
             break
         end
     end
 
-    -- If the map is 100% empty, we have nothing to clone to bypass ACL
     if not hostElement then
         outputChatBox("[Brush Tool] Please place at least ONE object manually in the editor first!", client, 255, 200, 0)
         return
@@ -32,28 +28,24 @@ addEventHandler("onBrushCreateObjects", resourceRoot, function(objectsData)
     local currentStroke = {} 
 
     for _, data in ipairs(objectsData) do
-        local model, x, y, z, rotZ, scale, collisions = unpack(data)
+        -- Now unpacking rotX and rotY sent from the client
+        local model, x, y, z, rotX, rotY, rotZ, scale, collisions = unpack(data)
         
-        -- Clone the host! Because the Editor does the cloning, it bypasses all ACL restrictions 
-        -- and automatically lands in the correct, saveable map container.
         local finalObj = exports.edf:edfCloneElement(hostElement)
         
         if finalObj then
-            -- Instantly swap the model to our Brush ID
             exports.edf:edfSetElementProperty(finalObj, "model", model)
             
-            -- Set the rest of the Editor properties so it saves correctly
             exports.edf:edfSetElementPosition(finalObj, x, y, z)
-            exports.edf:edfSetElementRotation(finalObj, 0, 0, rotZ)
+            -- Apply full X, Y, and Z rotations to the editor properties
+            exports.edf:edfSetElementRotation(finalObj, rotX, rotY, rotZ)
             exports.edf:edfSetElementProperty(finalObj, "scale", tostring(scale))
             exports.edf:edfSetElementProperty(finalObj, "collisions", tostring(collisions))
             
-            -- Give it a unique Editor ID so it doesn't conflict
             local newID = "BrushObj_" .. model .. "_" .. math.random(1000, 9999)
             exports.edf:edfSetElementProperty(finalObj, "id", newID)
             setElementID(finalObj, newID)
             
-            -- Sync physical state so you can see it instantly
             setElementDimension(finalObj, playerDim)
             setElementInterior(finalObj, playerInt)
             setObjectScale(finalObj, scale)
